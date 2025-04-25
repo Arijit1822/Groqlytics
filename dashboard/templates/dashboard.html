@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Monitor Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: linear-gradient(to right, #eef2f3, #7ec5ff);
+            font-family: 'Segoe UI', sans-serif;
+            color: #343a40;
+            padding: 20px;
+        }
+
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border: none;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .metric-card {
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 200px;
+            width: 200px;
+            margin: auto;
+        }
+
+        .metric-value {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .metric-label {
+            text-align: center;
+            font-size: 1rem;
+            color: #6c757d;
+        }
+
+        .btn-custom {
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 8px 16px;
+        }
+    </style>
+</head>
+{% csrf_token %}
+<body>
+    <div class="container-fluid">
+        <!-- Header with logout button aligned to right -->
+        <div class="row mb-4">
+            <div class="col-12 d-flex justify-content-end">
+                <a href="#" class="btn btn-outline-dark btn-sm" onclick="document.getElementById('logout-form').submit();">Logout</a>
+                <form id="logout-form" action="{% url 'logout' %}" method="post" style="display: none;">
+                    {% csrf_token %}
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="row g-4">
+            <!-- System Info -->
+            <div class="col-lg-4">
+                <div class="card p-4">
+                    <h5 class="mb-4">🧩 System Information</h5>
+                    <div id="sysinfo" class="fs-6"></div>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="col-lg-8">
+                <div class="row g-4">
+                    <!-- CPU Usage -->
+                    <div class="col-md-4">
+                        <div class="card metric-card p-3">
+                            <h6 class="text-center mb-3">CPU Usage</h6>
+                            <div class="chart-container">
+                                <canvas id="cpuChart"></canvas>
+                            </div>
+                            <div class="metric-value" id="cpu-value">0%</div>
+                        </div>
+                    </div>
+
+                    <!-- RAM Usage -->
+                    <div class="col-md-4">
+                        <div class="card metric-card p-3">
+                            <h6 class="text-center mb-3">RAM Usage</h6>
+                            <div class="chart-container">
+                                <canvas id="ramChart"></canvas>
+                            </div>
+                            <div class="metric-value" id="ram-value">0 GB</div>
+                        </div>
+                    </div>
+
+                    <!-- Disk Usage -->
+                    <div class="col-md-4">
+                        <div class="card metric-card p-3">
+                            <h6 class="text-center mb-3">Disk Usage</h6>
+                            <div class="chart-container">
+                                <canvas id="diskChart"></canvas>
+                            </div>
+                            <div class="metric-value" id="disk-value">0 GB</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Productivity Section -->
+            <div class="col-12">
+                <div class="card p-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="mb-4">🧠 Productivity Monitor</h5>
+                            <div class="mb-3">
+                                <strong>Active App:</strong> <span id="active-app">N/A</span>
+                            </div>
+                            <div class="mb-3">
+                                <strong>Time Spent:</strong> <span id="time-spent">0</span> seconds
+                            </div>
+                            <div class="mb-3">
+                                <strong>Suggestion:</strong> <span id="suggestion">Stay productive!</span>
+                            </div>
+                            <button id="reset-time" class="btn btn-warning btn-custom me-2">Reset Timer</button>
+                            <button id="save-logs" class="btn btn-success btn-custom">Save Logs</button>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-3">📜 Activity History</h6>
+                            <div id="history-container" style="height: 200px; overflow-y: auto;" class="border rounded p-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>
+        // Update the chart configurations
+        const chartOptions = {
+            type: 'doughnut',
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        };
+
+        // Initialize Charts with new configurations
+        const cpuChart = new Chart(document.getElementById('cpuChart').getContext('2d'), {
+            ...chartOptions,
+            data: {
+                labels: ['Used', 'Available'],
+                datasets: [{
+                    data: [0, 100],
+                    backgroundColor: ['#17a2b8', '#e2e3e5']
+                }]
+            }
+        });
+
+        const ramChart = new Chart(document.getElementById('ramChart').getContext('2d'), {
+            ...chartOptions,
+            data: {
+                labels: ['Used', 'Available'],
+                datasets: [{
+                    data: [0, 1],
+                    backgroundColor: ['#007bff', '#e2e3e5']
+                }]
+            }
+        });
+
+        const diskChart = new Chart(document.getElementById('diskChart').getContext('2d'), {
+            ...chartOptions,
+            data: {
+                labels: ['Used', 'Available'],
+                datasets: [{
+                    data: [0, 1],
+                    backgroundColor: ['#dc3545', '#e2e3e5']
+                }]
+            }
+        });
+
+        // Update the updateDashboard function
+        function updateDashboard() {
+            fetch('/api/system/')
+                .then(r => r.json())
+                .then(data => {
+                    // Update System Info
+                    document.getElementById('sysinfo').innerHTML = `
+                        <div class="mb-2">CPU Frequency: ${data.cpu_freq} MHz</div>
+                        <div class="mb-2">CPU Cores: ${data.cpu_cores}</div>
+                        <div class="mb-2">CPU Usage: ${data.cpu_usage}%</div>
+                        <div class="mb-2">RAM: ${data.ram_used}GB / ${data.ram_total}GB</div>
+                        <div class="mb-2">Disk: ${data.disk_used}GB / ${data.disk_total}GB</div>
+                    `;
+
+                    // Update Charts
+                    cpuChart.data.datasets[0].data = [data.cpu_usage, 100 - data.cpu_usage];
+                    ramChart.data.datasets[0].data = [data.ram_used, data.ram_total - data.ram_used];
+                    diskChart.data.datasets[0].data = [data.disk_used, data.disk_total - data.disk_used];
+
+                    // Update metric values
+                    document.getElementById('cpu-value').textContent = `${data.cpu_usage}%`;
+                    document.getElementById('ram-value').textContent = `${data.ram_used}/${data.ram_total} GB`;
+                    document.getElementById('disk-value').textContent = `${data.disk_used}/${data.disk_total} GB`;
+
+                    // Update charts
+                    cpuChart.update();
+                    ramChart.update();
+                    diskChart.update();
+
+                    // Update productivity data
+                    document.getElementById('active-app').textContent = data.active_app;
+                    document.getElementById('time-spent').textContent = data.time_spent;
+                    document.getElementById('suggestion').textContent = data.suggestion || 'Stay productive!';
+
+                    // Update history
+                    if (data.history && data.history.length > 0) {
+                        const historyContainer = document.getElementById('history-container');
+                        historyContainer.innerHTML = data.history
+                            .map(entry => `<div class="mb-2">${entry.app}: ${entry.time_spent} seconds</div>`)
+                            .join('');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating dashboard:', error);
+                });
+        }
+        // Update interval
+
+        
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Check if this cookie string begins with the name we want
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    
+        const csrftoken = getCookie('csrftoken');
+    
+        document.getElementById('reset-time').addEventListener('click', async function () {
+            try {
+                const response = await fetch('/reset_history/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken  // 🔥 Important
+                    },
+                });
+    
+                const result = await response.json();
+    
+                if (result.status === 'reset') {
+                    window.location.reload();
+                } else {
+                    alert('Reset failed: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Reset error:', error);
+                alert('Failed to reset timer. Please try again.');
+            }
+        });
+
+        document.getElementById('save-logs').addEventListener('click', function() {
+            window.location.href = '/save_logs_pdf/';
+        });
+
+        setInterval(updateDashboard, 5000);
+        updateDashboard();
+    </script>
+</body>
+</html>

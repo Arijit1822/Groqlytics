@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Productivity Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #e0eafc, #cfdef3);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            position: fixed;
+            width: 100%;
+            top: 0;
+        }
+        .container {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            width: 350px;
+            margin: 80px auto 20px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .container:hover {
+            transform: translateY(-5px);
+        }
+        h1 {
+            color: #3498db;
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+        .info {
+            margin: 10px 0;
+            font-size: 16px;
+            color: #34495e;
+            background: #ecf0f1;
+            padding: 12px;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        .info span {
+            color: #e74c3c;
+            font-weight: 700;
+        }
+        .info:hover {
+            background: #dfe6e9;
+        }
+        .suggestion {
+            margin: 15px 0;
+            font-size: 14px;
+            color: #27ae60;
+            background: #e8f8f1;
+            padding: 12px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .suggestion:hover {
+            background: #d5f5e3;
+        }
+        .history {
+            margin-top: 15px;
+            max-height: 120px;
+            overflow-y: auto;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: #bdc3c7 #f1f1f1;
+        }
+        .history p {
+            margin: 5px 0;
+            color: #7f8c8d;
+            font-size: 13px;
+            transition: color 0.3s;
+        }
+        .history p:hover {
+            color: #34495e;
+        }
+        .reset-btn {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        .reset-btn:hover {
+            background: #d35400;
+        }
+        .footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">Productivity Assistant Web</div>
+    <div class="container">
+        <h1>Your Productivity Suggestion</h1>
+        <div class="info">Active App: <span id="app">{{ app }}</span></div>
+        <div class="info">Time Spent: <span id="time">{{ time }} seconds</span></div>
+        <div class="suggestion">Suggestion: <span id="suggestion">{{ suggestion }}</span></div>
+        <button class="reset-btn" onclick="resetTime()">Reset Time</button>
+        <div class="history" id="history">
+            {% for entry in history %}
+                <p>{{ entry.app }} - {{ entry.time_spent }} seconds</p>
+            {% endfor %}
+        </div>
+        <div>
+            <form id="saveLogForm" method="POST" action="/save_logs">
+                <button type="button" onclick="saveLog()">Save Log</button>
+            </form>            
+        </div>
+
+    </div>
+    <div class="footer">© 2025 Productivity Assistant | Designed by TINY_Coders</div>
+    <script>
+        let history = [];
+        let lastApp = "";
+
+
+        function updateData() {
+            fetch('/get_screen_data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('app').innerText = data.app;
+                    document.getElementById('time').innerText = data.time_spent;
+                    document.getElementById('suggestion').innerText = data.suggestion || "No suggestion";
+                    
+                    // Update frontend history from backend history
+                    if (data.history && Array.isArray(data.history)) {
+                        history = data.history;
+                        updateHistory();
+                    }
+                    
+                    lastApp = data.app;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function updateHistory() {
+            const historyDiv = document.getElementById('history');
+            historyDiv.innerHTML = '';
+            if (history.length === 0) {
+                const p = document.createElement('p');
+                p.textContent = "No usage data available.";
+                historyDiv.appendChild(p);
+            } else {
+                history.forEach(entry => {
+                    const p = document.createElement('p');
+                    p.textContent = `${entry.app} - ${entry.time_spent} seconds`;  // Changed from entry.time to entry.time_spent
+                    historyDiv.appendChild(p);
+                });
+            }
+        }
+
+        function resetTime() {
+            history = [];
+            updateHistory();
+            fetch('/reset_time', {method: 'POST'})
+                .catch(error => console.error('Reset error:', error));
+        }
+
+        function saveLog() {
+            fetch('/save_logs', {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "saved") {
+                        alert("Log successfully saved!");
+                        // Optionally submit the form if required
+                        document.getElementById('saveLogForm').submit();
+                    }
+                })
+                .catch(error => console.error('Save log error:', error));
+        }    
+
+        setInterval(updateData, 5000); // Update the data every 5 seconds dynamically
+    </script>
+</body>
+</html>
