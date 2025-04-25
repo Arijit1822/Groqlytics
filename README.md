@@ -48,8 +48,8 @@ username & password: admin
 ### 3. Install dependencies
 ### 4. Navigate to sysmon in terminal
 ```bash
-git clone https://github.com/KALWARDIN123/Groqlytics---Real-time-analytics
-cd Groqlytics---Real-time-analytics
+git clone https://github.com/Arijit1822/Groqlytics
+cd Groqlytics
 python -m pip install pywin32 
 pip install -r requirements.txt
 cd sysmon
