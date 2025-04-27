@@ -44,9 +44,8 @@ username & password: admin
 ## ⚙️ Setup Instructions
 
 ### 1. Clone the repository
-### 2. Extract sysmon.rar
-### 3. Install dependencies
-### 4. Navigate to sysmon in terminal
+### 2. Install dependencies
+### 3. Navigate to sysmon in terminal
 ```bash
 git clone https://github.com/Arijit1822/Groqlytics
 cd Groqlytics
